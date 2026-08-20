@@ -24,6 +24,8 @@ import javax.swing.JDialog;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
 import javax.swing.border.EmptyBorder;
+import javax.swing.text.DefaultHighlighter;
+import javax.swing.text.Highlighter;
 
 public class KeyboardDialog extends JDialog {
 
@@ -276,30 +278,49 @@ public class KeyboardDialog extends JDialog {
 
     private void handleKeyPress(String cmd) {
         if ("Enter".equals(cmd)) {
-            committedText += uncommittedText;
+            if (!allCandidates.isEmpty()) {
+                committedText += allCandidates.get(0);
+            } else {
+                committedText += uncommittedText;
+            }
             uncommittedText = "";
             clearCandidates();
         } else if ("BS".equals(cmd)) {
-            if (uncommittedText.length() > 0) {
-                uncommittedText = uncommittedText.substring(0, uncommittedText.length() - 1);
-            } else if (committedText.length() > 0) {
-                committedText = committedText.substring(0, committedText.length() - 1);
+            if (!allCandidates.isEmpty()) {
+                // 変換中にBSを押した場合は変換をキャンセルしてひらがなに戻す
+                clearCandidates();
+            } else {
+                if (uncommittedText.length() > 0) {
+                    uncommittedText = uncommittedText.substring(0, uncommittedText.length() - 1);
+                } else if (committedText.length() > 0) {
+                    committedText = committedText.substring(0, committedText.length() - 1);
+                }
             }
         } else if ("Space".equals(cmd)) {
+            if (!allCandidates.isEmpty()) {
+                committedText += allCandidates.get(0);
+                uncommittedText = "";
+                clearCandidates();
+            }
             uncommittedText += " ";
-        } else if ("Shift".equals(cmd)) {
+        } else if ("Shift".equalsIgnoreCase(cmd)) {
             shiftOn = !shiftOn;
             if (shiftOn) {
                 shiftButton.setBackground(new Color(100, 150, 255));
                 shiftButton.setForeground(Color.WHITE);
-                shiftButton.setText("SHIFT");
             } else {
                 shiftButton.setBackground(SPECIAL_KEY_COLOR);
                 shiftButton.setForeground(Color.BLACK);
-                shiftButton.setText("Shift");
             }
             return;
         } else {
+            if (!allCandidates.isEmpty()) {
+                // 変換中に次の文字が入力されたら、最初の候補を自動確定して次へ
+                committedText += allCandidates.get(0);
+                uncommittedText = "";
+                clearCandidates();
+            }
+
             String mode = (String) modeComboBox.getSelectedItem();
             if ("英字".equals(mode) && shiftOn) {
                 uncommittedText += cmd.toUpperCase();
@@ -367,7 +388,7 @@ public class KeyboardDialog extends JDialog {
     }
 
     private void clearCandidates() {
-        allCandidates.clear();
+        allCandidates = new java.util.ArrayList<>();
         candidatePage = 0;
         candidateButtonPanel.removeAll();
         prevCandidateBtn.setEnabled(false);
@@ -389,7 +410,21 @@ public class KeyboardDialog extends JDialog {
 
     // ========== 表示更新 ==========
 
+    private static final Highlighter.HighlightPainter UNCOMMITTED_PAINTER = 
+            new DefaultHighlighter.DefaultHighlightPainter(new Color(180, 210, 255));
+
     private void updateTextField() {
         textField.setText(committedText + uncommittedText);
+        try {
+            Highlighter highlighter = textField.getHighlighter();
+            highlighter.removeAllHighlights();
+            if (uncommittedText.length() > 0) {
+                highlighter.addHighlight(committedText.length(), 
+                        committedText.length() + uncommittedText.length(), 
+                        UNCOMMITTED_PAINTER);
+            }
+        } catch (Exception e) {
+            // ignore
+        }
     }
 }
