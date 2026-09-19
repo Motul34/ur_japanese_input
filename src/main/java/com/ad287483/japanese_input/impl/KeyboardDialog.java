@@ -77,6 +77,7 @@ public class KeyboardDialog extends JDialog {
         setSize(870, 400);
         setLocationRelativeTo(owner);
         getContentPane().setBackground(BG_COLOR);
+        enableInputMethods(false);
 
         // Singletonから取得
         dictionaryEngine = SkkDictionaryEngine.getInstance();
@@ -100,6 +101,7 @@ public class KeyboardDialog extends JDialog {
         textField = new JTextField();
         textField.setFont(new Font("SansSerif", Font.PLAIN, 24));
         textField.setEditable(false);
+        textField.enableInputMethods(false);
         textField.setBackground(Color.WHITE);
         textField.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(new Color(170, 170, 170), 1),
@@ -251,6 +253,7 @@ public class KeyboardDialog extends JDialog {
             }
         });
         row4.add(modeComboBox);
+
         mainPanel.add(row4);
         mainPanel.add(javax.swing.Box.createVerticalStrut(6));
 
@@ -285,13 +288,60 @@ public class KeyboardDialog extends JDialog {
         setupPhysicalKeyboard();
     }
 
+    // 物理キーボードイベント処理
+    private long lastModeToggleTime = 0;
+
+    private boolean isModeSwitchKey(KeyEvent e) {
+        int keyCode = e.getKeyCode();
+        int extCode = e.getExtendedKeyCode();
+        char keyChar = e.getKeyChar();
+
+        // 1. 半角/全角・漢字キー
+        if (keyCode == KeyEvent.VK_KANJI || keyCode == KeyEvent.VK_HALF_WIDTH || keyCode == KeyEvent.VK_FULL_WIDTH) {
+            return true;
+        }
+        if (extCode == 25 || extCode == 243 || extCode == 244) {
+            return true;
+        }
+        // 2. 英語配列キーボードでの半角/全角キー (Back Quote / Tilde: 1の左のキー)
+        if (keyCode == KeyEvent.VK_BACK_QUOTE || extCode == 192 || keyChar == '`') {
+            return true;
+        }
+        // 3. 変換キー (VK_CONVERT) / 無変換キー (VK_NONCONVERT)
+        if (keyCode == KeyEvent.VK_CONVERT || keyCode == KeyEvent.VK_NONCONVERT || extCode == 28 || extCode == 29) {
+            return true;
+        }
+        // 4. Ctrl + Space
+        if (keyCode == KeyEvent.VK_SPACE && (e.isControlDown() || e.isMetaDown())) {
+            return true;
+        }
+        // 5. F1キー（ショートカット）
+        if (keyCode == KeyEvent.VK_F1) {
+            return true;
+        }
+        return false;
+    }
+
     private void setupPhysicalKeyboard() {
         keyEventDispatcher = new KeyEventDispatcher() {
             @Override
             public boolean dispatchKeyEvent(KeyEvent e) {
-                if (!isShowing() || !isActive()) {
+                if (!isShowing()) {
                     return false;
                 }
+
+                // モード切替キーの判定（KEY_PRESSED または KEY_RELEASED のどちらでも検知・デバウンス制御）
+                if (e.getID() == KeyEvent.KEY_PRESSED || e.getID() == KeyEvent.KEY_RELEASED) {
+                    if (isModeSwitchKey(e)) {
+                        long now = System.currentTimeMillis();
+                        if (now - lastModeToggleTime > 250) {
+                            lastModeToggleTime = now;
+                            toggleMode();
+                        }
+                        return true;
+                    }
+                }
+
                 if (e.getID() == KeyEvent.KEY_PRESSED) {
                     int keyCode = e.getKeyCode();
                     char keyChar = e.getKeyChar();
@@ -317,13 +367,6 @@ public class KeyboardDialog extends JDialog {
                         } else {
                             dispose();
                         }
-                        return true;
-                    } else if (keyCode == KeyEvent.VK_KANJI
-                            || keyCode == KeyEvent.VK_HALF_WIDTH
-                            || keyCode == KeyEvent.VK_FULL_WIDTH
-                            || keyCode == KeyEvent.VK_CONVERT
-                            || keyCode == KeyEvent.VK_BACK_QUOTE) {
-                        toggleMode();
                         return true;
                     } else if (keyCode == KeyEvent.VK_LEFT) {
                         if (candidatePage > 0) {

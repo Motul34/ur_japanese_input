@@ -1,5 +1,5 @@
 Manifest-Version: 1.0
-Bnd-LastModified: 1789824823894
+Bnd-LastModified: 1789825727474
 Build-Jdk-Spec: 21
 Bundle-Activator: com.ad287483.japanese_input.impl.Activator
 Bundle-Category: URCap

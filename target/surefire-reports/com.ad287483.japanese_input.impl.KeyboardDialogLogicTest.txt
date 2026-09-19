@@ -1,4 +1,4 @@
 -------------------------------------------------------------------------------
 Test set: com.ad287483.japanese_input.impl.KeyboardDialogLogicTest
 -------------------------------------------------------------------------------
-Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.379 s -- in com.ad287483.japanese_input.impl.KeyboardDialogLogicTest
+Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.403 s -- in com.ad287483.japanese_input.impl.KeyboardDialogLogicTest
