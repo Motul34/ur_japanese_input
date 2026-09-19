@@ -48,6 +48,7 @@
 		<!-- Current year for the copyright -->
 		<copyright.year>${maven.build.timestamp}</copyright.year>
 		<maven.build.timestamp.format>yyyy</maven.build.timestamp.format>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 	</properties>
 
 	<dependencies>
@@ -64,11 +65,6 @@
 			<version>1.17.0</version>
 			<scope>provided</scope>
 		</dependency>
-		<dependency>
-			<groupId>org.xerial</groupId>
-			<artifactId>sqlite-jdbc</artifactId>
-			<version>3.42.0.0</version>
-		</dependency>
 
 		<!-- Test dependencies -->
 		<dependency>
@@ -84,6 +80,7 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
+				<version>3.11.0</version>
 				<configuration>
 					<source>1.8</source>
 					<target>1.8</target>
@@ -122,8 +119,6 @@
 							com.ur.urcap.api*,
 							*
 						</Import-Package>
-						<Embed-Dependency>sqlite-jdbc</Embed-Dependency>
-						<Embed-Transitive>true</Embed-Transitive>
 					</instructions>
 				</configuration>
 			</plugin>

@@ -115,6 +115,9 @@ public class RomajiToKanaConverter {
         // でぃ・てぃ等
         ROMAJI_MAP.put("thi", "てぃ"); ROMAJI_MAP.put("dhi", "でぃ");
 
+        // 記号（長音等）
+        ROMAJI_MAP.put("-", "ー");
+
         // プレフィックスセットを構築（部分一致チェック用）
         for (String key : ROMAJI_MAP.keySet()) {
             for (int i = 1; i < key.length(); i++) {
@@ -132,8 +135,8 @@ public class RomajiToKanaConverter {
         for (int i = 0; i < input.length(); i++) {
             char c = input.charAt(i);
 
-            // アルファベット以外は変換対象外として即出力
-            if (!(c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z')) {
+            // アルファベットおよびハイフン以外は変換対象外として即出力
+            if (!(c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c == '-')) {
                 result.append(buffer.toString());
                 result.append(c);
                 buffer.setLength(0);

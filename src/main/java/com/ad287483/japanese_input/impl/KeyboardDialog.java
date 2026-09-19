@@ -8,12 +8,15 @@ import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
+import java.awt.KeyEventDispatcher;
+import java.awt.KeyboardFocusManager;
 import java.awt.Toolkit;
 import java.awt.Window;
 import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.StringSelection;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.KeyEvent;
 import java.util.ArrayList;
 import java.util.List;
 import javax.swing.BorderFactory;
@@ -38,13 +41,17 @@ public class KeyboardDialog extends JDialog {
     private boolean shiftOn = false;
     private JButton shiftButton;
 
-    // 変換候補のページング
+    // 変換候補のページングとフォーカス
     private List<String> allCandidates = new ArrayList<>();
     private int candidatePage = 0;
+    private int selectedCandidateIndex = -1;
     private static final int CANDIDATES_PER_PAGE = 7;
     private JPanel candidateButtonPanel;
     private JButton prevCandidateBtn;
     private JButton nextCandidateBtn;
+
+    // 物理キーボードイベント処理
+    private KeyEventDispatcher keyEventDispatcher;
 
     // キー配列
     private static final String[][] KEY_ROWS = {
@@ -58,6 +65,7 @@ public class KeyboardDialog extends JDialog {
     private static final Color KEY_COLOR = new Color(230, 235, 240);
     private static final Color SPECIAL_KEY_COLOR = new Color(200, 205, 210);
     private static final Color CANDIDATE_BG = new Color(245, 245, 250);
+    private static final Color SELECTED_CANDIDATE_COLOR = new Color(180, 215, 255);
     private static final Font KEY_FONT = new Font("SansSerif", Font.BOLD, 16);
     private static final int KEY_W = 55;
     private static final int KEY_H = 38;
@@ -70,7 +78,8 @@ public class KeyboardDialog extends JDialog {
         setLocationRelativeTo(owner);
         getContentPane().setBackground(BG_COLOR);
 
-        dictionaryEngine = new SkkDictionaryEngine();
+        // Singletonから取得
+        dictionaryEngine = SkkDictionaryEngine.getInstance();
 
         // ============================
         // メインの縦パネル
@@ -118,7 +127,7 @@ public class KeyboardDialog extends JDialog {
         mainPanel.add(javax.swing.Box.createVerticalStrut(12));
 
         // ============================
-        // 2段目: 予測変換候補バー（スマホ風）
+        // 2段目: 予測変換候補バー
         // ============================
         JPanel candidateBar = new JPanel(new BorderLayout(4, 0));
         candidateBar.setBackground(CANDIDATE_BG);
@@ -146,6 +155,7 @@ public class KeyboardDialog extends JDialog {
             public void actionPerformed(ActionEvent e) {
                 if (candidatePage > 0) {
                     candidatePage--;
+                    selectedCandidateIndex = candidatePage * CANDIDATES_PER_PAGE;
                     showCandidatePage();
                 }
             }
@@ -161,6 +171,7 @@ public class KeyboardDialog extends JDialog {
                 int maxPage = (allCandidates.size() - 1) / CANDIDATES_PER_PAGE;
                 if (candidatePage < maxPage) {
                     candidatePage++;
+                    selectedCandidateIndex = candidatePage * CANDIDATES_PER_PAGE;
                     showCandidatePage();
                 }
             }
@@ -219,10 +230,26 @@ public class KeyboardDialog extends JDialog {
         }
         String[] modes = {"英字", "ひらがな", "カタカナ", "漢字"};
         modeComboBox = new JComboBox<>(modes);
-        modeComboBox.setSelectedIndex(1);
+        modeComboBox.setSelectedIndex(3); // デフォルト漢字モード
         modeComboBox.setFont(new Font("SansSerif", Font.PLAIN, 13));
         modeComboBox.setPreferredSize(new Dimension(95, KEY_H));
         modeComboBox.setMaximumSize(new Dimension(95, KEY_H));
+        modeComboBox.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                // モード変更時に未確定文字列を確定
+                if (!allCandidates.isEmpty()) {
+                    int idx = (selectedCandidateIndex >= 0 && selectedCandidateIndex < allCandidates.size()) ? selectedCandidateIndex : 0;
+                    committedText += allCandidates.get(idx);
+                    uncommittedText = "";
+                    clearCandidates();
+                } else if (!uncommittedText.isEmpty()) {
+                    committedText += fixTrailingN(uncommittedText);
+                    uncommittedText = "";
+                }
+                updateTextField();
+            }
+        });
         row4.add(modeComboBox);
         mainPanel.add(row4);
         mainPanel.add(javax.swing.Box.createVerticalStrut(6));
@@ -251,6 +278,92 @@ public class KeyboardDialog extends JDialog {
         mainPanel.add(javax.swing.Box.createVerticalGlue());
 
         add(mainPanel, BorderLayout.CENTER);
+
+        // ============================
+        // 物理キーボード入力イベントの登録
+        // ============================
+        setupPhysicalKeyboard();
+    }
+
+    private void setupPhysicalKeyboard() {
+        keyEventDispatcher = new KeyEventDispatcher() {
+            @Override
+            public boolean dispatchKeyEvent(KeyEvent e) {
+                if (!isShowing() || !isActive()) {
+                    return false;
+                }
+                if (e.getID() == KeyEvent.KEY_PRESSED) {
+                    int keyCode = e.getKeyCode();
+                    char keyChar = e.getKeyChar();
+
+                    if (keyCode == KeyEvent.VK_ENTER) {
+                        handleKeyPress("Enter");
+                        return true;
+                    } else if (keyCode == KeyEvent.VK_BACK_SPACE) {
+                        handleKeyPress("BS");
+                        return true;
+                    } else if (keyCode == KeyEvent.VK_SPACE) {
+                        handleKeyPress("Space");
+                        return true;
+                    } else if (keyCode == KeyEvent.VK_SHIFT) {
+                        handleKeyPress("Shift");
+                        return true;
+                    } else if (keyCode == KeyEvent.VK_ESCAPE) {
+                        if (!allCandidates.isEmpty()) {
+                            clearCandidates();
+                        } else if (!uncommittedText.isEmpty()) {
+                            uncommittedText = "";
+                            updateTextField();
+                        } else {
+                            dispose();
+                        }
+                        return true;
+                    } else if (keyCode == KeyEvent.VK_KANJI
+                            || keyCode == KeyEvent.VK_HALF_WIDTH
+                            || keyCode == KeyEvent.VK_FULL_WIDTH
+                            || keyCode == KeyEvent.VK_CONVERT
+                            || keyCode == KeyEvent.VK_BACK_QUOTE) {
+                        toggleMode();
+                        return true;
+                    } else if (keyCode == KeyEvent.VK_LEFT) {
+                        if (candidatePage > 0) {
+                            candidatePage--;
+                            selectedCandidateIndex = candidatePage * CANDIDATES_PER_PAGE;
+                            showCandidatePage();
+                        }
+                        return true;
+                    } else if (keyCode == KeyEvent.VK_RIGHT) {
+                        int maxPage = allCandidates.isEmpty() ? 0 : (allCandidates.size() - 1) / CANDIDATES_PER_PAGE;
+                        if (candidatePage < maxPage) {
+                            candidatePage++;
+                            selectedCandidateIndex = candidatePage * CANDIDATES_PER_PAGE;
+                            showCandidatePage();
+                        }
+                        return true;
+                    } else if (keyChar != KeyEvent.CHAR_UNDEFINED && keyChar >= 32 && keyChar <= 126) {
+                        handleKeyPress(String.valueOf(keyChar));
+                        return true;
+                    }
+                }
+                return false;
+            }
+        };
+        KeyboardFocusManager.getCurrentKeyboardFocusManager().addKeyEventDispatcher(keyEventDispatcher);
+    }
+
+    public void toggleMode() {
+        int current = modeComboBox.getSelectedIndex();
+        int next = (current + 1) % modeComboBox.getItemCount();
+        modeComboBox.setSelectedIndex(next);
+    }
+
+    @Override
+    public void dispose() {
+        if (keyEventDispatcher != null) {
+            KeyboardFocusManager.getCurrentKeyboardFocusManager().removeKeyEventDispatcher(keyEventDispatcher);
+            keyEventDispatcher = null;
+        }
+        super.dispose();
     }
 
     // ========== ユーティリティ ==========
@@ -279,9 +392,10 @@ public class KeyboardDialog extends JDialog {
     private void handleKeyPress(String cmd) {
         if ("Enter".equals(cmd)) {
             if (!allCandidates.isEmpty()) {
-                committedText += allCandidates.get(0);
+                int idx = (selectedCandidateIndex >= 0 && selectedCandidateIndex < allCandidates.size()) ? selectedCandidateIndex : 0;
+                committedText += allCandidates.get(idx);
             } else {
-                committedText += uncommittedText;
+                committedText += fixTrailingN(uncommittedText);
             }
             uncommittedText = "";
             clearCandidates();
@@ -297,12 +411,31 @@ public class KeyboardDialog extends JDialog {
                 }
             }
         } else if ("Space".equals(cmd)) {
-            if (!allCandidates.isEmpty()) {
-                committedText += allCandidates.get(0);
-                uncommittedText = "";
-                clearCandidates();
+            String mode = (String) modeComboBox.getSelectedItem();
+            if ("漢字".equals(mode) && !uncommittedText.isEmpty()) {
+                // 漢字モードで未確定文字列がある時: スペースキーで漢字変換・次候補選択
+                if (allCandidates.isEmpty()) {
+                    doConvert();
+                } else {
+                    // 次の候補を選択
+                    selectedCandidateIndex = (selectedCandidateIndex + 1) % allCandidates.size();
+                    candidatePage = selectedCandidateIndex / CANDIDATES_PER_PAGE;
+                    showCandidatePage();
+                }
+                return;
+            } else {
+                // 通常のスペース
+                if (!allCandidates.isEmpty()) {
+                    int idx = (selectedCandidateIndex >= 0 && selectedCandidateIndex < allCandidates.size()) ? selectedCandidateIndex : 0;
+                    committedText += allCandidates.get(idx);
+                    uncommittedText = "";
+                    clearCandidates();
+                } else if (!uncommittedText.isEmpty()) {
+                    committedText += fixTrailingN(uncommittedText);
+                    uncommittedText = "";
+                }
+                committedText += " ";
             }
-            uncommittedText += " ";
         } else if ("Shift".equalsIgnoreCase(cmd)) {
             shiftOn = !shiftOn;
             if (shiftOn) {
@@ -315,8 +448,9 @@ public class KeyboardDialog extends JDialog {
             return;
         } else {
             if (!allCandidates.isEmpty()) {
-                // 変換中に次の文字が入力されたら、最初の候補を自動確定して次へ
-                committedText += allCandidates.get(0);
+                // 変換中に次の文字が入力されたら、現在選択中の候補を自動確定して次へ
+                int idx = (selectedCandidateIndex >= 0 && selectedCandidateIndex < allCandidates.size()) ? selectedCandidateIndex : 0;
+                committedText += allCandidates.get(idx);
                 uncommittedText = "";
                 clearCandidates();
             }
@@ -348,9 +482,14 @@ public class KeyboardDialog extends JDialog {
         if (!"漢字".equals(mode)) return;
         if (uncommittedText.isEmpty()) return;
 
+        // 末尾の 'n' を自動的に「ん」に補正
+        uncommittedText = fixTrailingN(uncommittedText);
+
         allCandidates = dictionaryEngine.getCandidates(uncommittedText);
         candidatePage = 0;
+        selectedCandidateIndex = 0;
         showCandidatePage();
+        updateTextField();
     }
 
     private void showCandidatePage() {
@@ -360,13 +499,21 @@ public class KeyboardDialog extends JDialog {
         int end = Math.min(start + CANDIDATES_PER_PAGE, allCandidates.size());
 
         for (int i = start; i < end; i++) {
+            final int index = i;
             final String candidate = allCandidates.get(i);
             JButton btn = new JButton(candidate);
             btn.setFont(new Font("SansSerif", Font.PLAIN, 15));
             btn.setPreferredSize(new Dimension(90, 28));
-            btn.setBackground(Color.WHITE);
+
+            if (index == selectedCandidateIndex) {
+                btn.setBackground(SELECTED_CANDIDATE_COLOR);
+                btn.setBorder(BorderFactory.createLineBorder(new Color(100, 150, 240), 2));
+            } else {
+                btn.setBackground(Color.WHITE);
+                btn.setBorder(BorderFactory.createLineBorder(new Color(180, 180, 180), 1));
+            }
+
             btn.setFocusPainted(false);
-            btn.setBorder(BorderFactory.createLineBorder(new Color(180, 180, 180), 1));
             btn.addActionListener(new ActionListener() {
                 @Override
                 public void actionPerformed(ActionEvent e) {
@@ -388,13 +535,22 @@ public class KeyboardDialog extends JDialog {
     }
 
     private void clearCandidates() {
-        allCandidates = new java.util.ArrayList<>();
+        allCandidates = new ArrayList<>();
         candidatePage = 0;
+        selectedCandidateIndex = -1;
         candidateButtonPanel.removeAll();
         prevCandidateBtn.setEnabled(false);
         nextCandidateBtn.setEnabled(false);
         candidateButtonPanel.revalidate();
         candidateButtonPanel.repaint();
+    }
+
+    private String fixTrailingN(String text) {
+        if (text == null || text.isEmpty()) return "";
+        if (text.endsWith("n") || text.endsWith("N")) {
+            return text.substring(0, text.length() - 1) + "ん";
+        }
+        return text;
     }
 
     // ========== コピー ==========

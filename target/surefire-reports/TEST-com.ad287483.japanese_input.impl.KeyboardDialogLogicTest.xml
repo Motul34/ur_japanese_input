@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report.xsd" version="3.0.2" name="com.ad287483.japanese_input.impl.AppTest" time="0.008" tests="5" errors="0" skipped="0" failures="0">
+<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report.xsd" version="3.0.2" name="com.ad287483.japanese_input.impl.KeyboardDialogLogicTest" time="0.379" tests="5" errors="0" skipped="0" failures="0">
   <properties>
     <property name="java.specification.version" value="21"/>
     <property name="sun.jnu.encoding" value="UTF-8"/>
@@ -53,9 +53,12 @@
     <property name="sun.io.unicode.encoding" value="UnicodeLittle"/>
     <property name="java.class.version" value="65.0"/>
   </properties>
-  <testcase name="testApp" classname="com.ad287483.japanese_input.impl.AppTest" time="0.001"/>
-  <testcase name="testSingleton" classname="com.ad287483.japanese_input.impl.AppTest" time="0.001"/>
-  <testcase name="testDictionaryCandidates" classname="com.ad287483.japanese_input.impl.AppTest" time="0.0"/>
-  <testcase name="testPerformanceAndMemory" classname="com.ad287483.japanese_input.impl.AppTest" time="0.001"/>
-  <testcase name="testRomajiConversionWithLongVowel" classname="com.ad287483.japanese_input.impl.AppTest" time="0.0"/>
+  <testcase name="testToggleMode" classname="com.ad287483.japanese_input.impl.KeyboardDialogLogicTest" time="0.325">
+    <system-out><![CDATA[SKK dictionary loaded successfully. Entries: 212859
+]]></system-out>
+  </testcase>
+  <testcase name="testTrailingNFix" classname="com.ad287483.japanese_input.impl.KeyboardDialogLogicTest" time="0.01"/>
+  <testcase name="testSpaceConversionSimulation" classname="com.ad287483.japanese_input.impl.KeyboardDialogLogicTest" time="0.015"/>
+  <testcase name="testZenkakuHankakuKeyDispatch" classname="com.ad287483.japanese_input.impl.KeyboardDialogLogicTest" time="0.006"/>
+  <testcase name="testVerbSpaceConversion" classname="com.ad287483.japanese_input.impl.KeyboardDialogLogicTest" time="0.011"/>
 </testsuite>

@@ -1,9 +1,8 @@
 Manifest-Version: 1.0
-Bnd-LastModified: 1789477692571
+Bnd-LastModified: 1789824823894
 Build-Jdk-Spec: 21
 Bundle-Activator: com.ad287483.japanese_input.impl.Activator
 Bundle-Category: URCap
-Bundle-ClassPath: .,sqlite-jdbc-3.42.0.0.jar
 Bundle-ContactAddress: ad287483
 Bundle-Copyright: Takuya Matsuo
 Bundle-Description: Please connect a keyboard and paste using Ctrl+V.
@@ -14,14 +13,10 @@ Bundle-SymbolicName: com.ad287483.japanese_input
 Bundle-Vendor: Takuya Matsuo
 Bundle-Version: 1.1.0
 Created-By: Apache Maven Bundle Plugin 5.1.9
-Embed-Dependency: sqlite-jdbc
-Embed-Transitive: true
-Embedded-Artifacts: sqlite-jdbc-3.42.0.0.jar;g="org.xerial";a="sqlite-jd
- bc";v="3.42.0.0"
 Import-Package: com.ur.urcap.api.contribution.toolbar;version="[1.8,2)",
- com.ur.urcap.api.contribution.toolbar.swing;version="[1.8,2)",javax.sql
- ;resolution:=optional,javax.swing,javax.swing.border,javax.swing.text,o
- rg.osgi.framework;version="[1.6,2)"
+ com.ur.urcap.api.contribution.toolbar.swing;version="[1.8,2)",javax.swi
+ ng,javax.swing.border,javax.swing.text,org.osgi.framework;version="[1.6
+ ,2)"
 Require-Capability: osgi.ee;filter:="(&(osgi.ee=JavaSE)(version=1.8))"
 Tool: Bnd-6.3.1.202206071316
 URCapCompatibility-CB3: false
