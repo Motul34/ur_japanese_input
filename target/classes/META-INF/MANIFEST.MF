@@ -1,5 +1,5 @@
 Manifest-Version: 1.0
-Bnd-LastModified: 1789825727474
+Bnd-LastModified: 1789957384689
 Build-Jdk-Spec: 21
 Bundle-Activator: com.ad287483.japanese_input.impl.Activator
 Bundle-Category: URCap
@@ -11,7 +11,7 @@ Bundle-ManifestVersion: 2
 Bundle-Name: japanese_input
 Bundle-SymbolicName: com.ad287483.japanese_input
 Bundle-Vendor: Takuya Matsuo
-Bundle-Version: 1.1.0
+Bundle-Version: 1.2.0
 Created-By: Apache Maven Bundle Plugin 5.1.9
 Import-Package: com.ur.urcap.api.contribution.toolbar;version="[1.8,2)",
  com.ur.urcap.api.contribution.toolbar.swing;version="[1.8,2)",javax.swi

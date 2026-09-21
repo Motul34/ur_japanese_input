@@ -353,6 +353,10 @@ public class KeyboardDialog extends JDialog {
                         handleKeyPress("BS");
                         return true;
                     } else if (keyCode == KeyEvent.VK_SPACE) {
+                        if (e.isShiftDown() && !allCandidates.isEmpty()) {
+                            selectPrevCandidate();
+                            return true;
+                        }
                         handleKeyPress("Space");
                         return true;
                     } else if (keyCode == KeyEvent.VK_SHIFT) {
@@ -368,19 +372,14 @@ public class KeyboardDialog extends JDialog {
                             dispose();
                         }
                         return true;
-                    } else if (keyCode == KeyEvent.VK_LEFT) {
-                        if (candidatePage > 0) {
-                            candidatePage--;
-                            selectedCandidateIndex = candidatePage * CANDIDATES_PER_PAGE;
-                            showCandidatePage();
+                    } else if (keyCode == KeyEvent.VK_LEFT || keyCode == KeyEvent.VK_UP) {
+                        if (!allCandidates.isEmpty()) {
+                            selectPrevCandidate();
                         }
                         return true;
-                    } else if (keyCode == KeyEvent.VK_RIGHT) {
-                        int maxPage = allCandidates.isEmpty() ? 0 : (allCandidates.size() - 1) / CANDIDATES_PER_PAGE;
-                        if (candidatePage < maxPage) {
-                            candidatePage++;
-                            selectedCandidateIndex = candidatePage * CANDIDATES_PER_PAGE;
-                            showCandidatePage();
+                    } else if (keyCode == KeyEvent.VK_RIGHT || keyCode == KeyEvent.VK_DOWN) {
+                        if (!allCandidates.isEmpty()) {
+                            selectNextCandidate();
                         }
                         return true;
                     } else if (keyChar != KeyEvent.CHAR_UNDEFINED && keyChar >= 32 && keyChar <= 126) {
@@ -461,9 +460,7 @@ public class KeyboardDialog extends JDialog {
                     doConvert();
                 } else {
                     // 次の候補を選択
-                    selectedCandidateIndex = (selectedCandidateIndex + 1) % allCandidates.size();
-                    candidatePage = selectedCandidateIndex / CANDIDATES_PER_PAGE;
-                    showCandidatePage();
+                    selectNextCandidate();
                 }
                 return;
             } else {
@@ -516,6 +513,24 @@ public class KeyboardDialog extends JDialog {
         }
 
         updateTextField();
+    }
+
+    // ========== 漢字変換候補ナビゲーション ==========
+
+    void selectNextCandidate() {
+        if (allCandidates.isEmpty()) return;
+        int current = (selectedCandidateIndex >= 0) ? selectedCandidateIndex : 0;
+        selectedCandidateIndex = (current + 1) % allCandidates.size();
+        candidatePage = selectedCandidateIndex / CANDIDATES_PER_PAGE;
+        showCandidatePage();
+    }
+
+    void selectPrevCandidate() {
+        if (allCandidates.isEmpty()) return;
+        int current = (selectedCandidateIndex >= 0) ? selectedCandidateIndex : 0;
+        selectedCandidateIndex = (current - 1 + allCandidates.size()) % allCandidates.size();
+        candidatePage = selectedCandidateIndex / CANDIDATES_PER_PAGE;
+        showCandidatePage();
     }
 
     // ========== 漢字変換 ==========

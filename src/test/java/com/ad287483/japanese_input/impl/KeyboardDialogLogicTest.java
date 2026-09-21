@@ -167,4 +167,58 @@ class KeyboardDialogLogicTest {
 
         dialog.dispose();
     }
+
+    @Test
+    void testCandidateNavigationWithArrowKeys() throws Exception {
+        KeyboardDialog dialog = new KeyboardDialog(null);
+
+        Method handleKeyMethod = KeyboardDialog.class.getDeclaredMethod("handleKeyPress", String.class);
+        handleKeyMethod.setAccessible(true);
+
+        java.lang.reflect.Field candIndexField = KeyboardDialog.class.getDeclaredField("selectedCandidateIndex");
+        candIndexField.setAccessible(true);
+
+        java.lang.reflect.Field candField = KeyboardDialog.class.getDeclaredField("allCandidates");
+        candField.setAccessible(true);
+
+        // "k", "a", "n", "j", "i" を入力して変換
+        handleKeyMethod.invoke(dialog, "k");
+        handleKeyMethod.invoke(dialog, "a");
+        handleKeyMethod.invoke(dialog, "n");
+        handleKeyMethod.invoke(dialog, "j");
+        handleKeyMethod.invoke(dialog, "i");
+
+        // 1回目のスペース: 漢字変換実行 (インデックス0)
+        handleKeyMethod.invoke(dialog, "Space");
+        @SuppressWarnings("unchecked")
+        List<String> candidates = (List<String>) candField.get(dialog);
+        assertNotNull(candidates);
+        assertTrue(candidates.size() > 1, "複数候補が存在すること");
+        assertEquals(0, candIndexField.get(dialog), "初期選択候補はインデックス0");
+
+        // 2回目のスペース: 次の候補 (インデックス1)
+        handleKeyMethod.invoke(dialog, "Space");
+        assertEquals(1, candIndexField.get(dialog), "スペース押下でインデックス1に進むこと");
+
+        // 左矢印キー相当: selectPrevCandidate() で1つ前の候補 (インデックス0) に戻る
+        dialog.selectPrevCandidate();
+        assertEquals(0, candIndexField.get(dialog), "左キー相当の操作で1つ前の候補(インデックス0)に戻ること");
+
+        // 先頭でさらに selectPrevCandidate() -> 末尾候補へ循環
+        dialog.selectPrevCandidate();
+        assertEquals(candidates.size() - 1, candIndexField.get(dialog), "先頭からの戻り操作で末尾候補に循環すること");
+
+        // 右矢印キー相当: selectNextCandidate() で先頭候補 (インデックス0) へ循環
+        dialog.selectNextCandidate();
+        assertEquals(0, candIndexField.get(dialog), "末尾からの進み操作で先頭候補(インデックス0)に循環すること");
+
+        // Enterで確定
+        handleKeyMethod.invoke(dialog, "Enter");
+        java.lang.reflect.Field textFieldField = KeyboardDialog.class.getDeclaredField("textField");
+        textFieldField.setAccessible(true);
+        javax.swing.JTextField tf = (javax.swing.JTextField) textFieldField.get(dialog);
+        assertEquals(candidates.get(0), tf.getText(), "選択した候補がテキストフィールドに確定されること");
+
+        dialog.dispose();
+    }
 }
